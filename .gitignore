@@ -1,0 +1,13 @@
+# Secrets — every teammate keeps their OWN keys here, never committed
+.env
+
+# Generated databases (rebuild with scripts/setup_db.py)
+data/*.db
+data/*.sql.cache
+
+# Python / Jupyter
+__pycache__/
+*.pyc
+.venv/
+.ipynb_checkpoints/
+.DS_Store

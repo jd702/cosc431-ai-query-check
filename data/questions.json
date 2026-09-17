@@ -1,0 +1,24 @@
+[
+  {
+    "id": "Q01",
+    "question": "How many customers are there in each country? List the country and the count.",
+    "difficulty": "easy",
+    "category": "aggregation",
+    "spider_source": "EXAMPLE — replace with the Spider db_id + question index you adapted",
+    "adaptation_notes": "",
+    "gold_sql": "SELECT Country, COUNT(*) FROM Customer GROUP BY Country",
+    "order_matters": false,
+    "owner": ""
+  },
+  {
+    "id": "Q02",
+    "question": "What are the titles of all albums by the artist 'AC/DC'?",
+    "difficulty": "medium",
+    "category": "join",
+    "spider_source": "EXAMPLE — replace with the Spider db_id + question index you adapted",
+    "adaptation_notes": "",
+    "gold_sql": "SELECT a.Title FROM Album a JOIN Artist ar ON a.ArtistId = ar.ArtistId WHERE ar.Name = 'AC/DC'",
+    "order_matters": false,
+    "owner": ""
+  }
+]
