@@ -50,7 +50,7 @@ def main() -> None:
     script = fetch_script()
 
     conn = build(NORM_DB, script)
-    (SQL / "normalized_schema.sql").write_text(dump_ddl(conn))
+    (SQL / "normalized_schema.sql").write_text(dump_ddl(conn), encoding="utf-8")
     counts = {
         t: conn.execute(f'SELECT COUNT(*) FROM "{t}"').fetchone()[0]
         for (t,) in conn.execute(
@@ -60,7 +60,7 @@ def main() -> None:
     conn.close()
     print(f"Built {NORM_DB.name}: " + ", ".join(f"{t}={n}" for t, n in counts.items()))
 
-    denorm_sql = (SQL / "denormalized_schema.sql").read_text()
+    denorm_sql = (SQL / "denormalized_schema.sql").read_text(encoding="utf-8")
     conn = build(DENORM_DB, script)
     conn.executescript(denorm_sql)
     conn.commit()
