@@ -166,7 +166,7 @@
 },
 {
   "id": "Q16",
-  "question": "What are the last names of employees who serve at most 20 customers?",
+  "question": "What are the last names of employees who serve at most 20 customers, including employees who serve no customers?",
   "difficulty": "medium",
   "category": "aggregation",
   "spider_source": "chinnok_1, train_spider.json index 872",
