@@ -1,7 +1,39 @@
 # Deliverable 1 Write-up
 
 ## Schema choice
-<!-- Why Chinook? Tables, relationships, row counts (setup_db.py prints them). -->
+
+We chose **Chinook**, a digital media store, over Sakila. It is the smaller of the two options
+(11 tables against Sakila's 16), which let us spend our time on the evaluation rather than on
+learning an unfamiliar schema, and it ships as a single SQLite script so every team member can
+rebuild an identical database with one command (`python scripts/setup_db.py`). Chinook is also
+represented in the Spider benchmark as `chinook_1`, so the questions we adapted were written
+against the same table and column names we query, which kept adaptations minimal.
+
+| Table | Rows | Role |
+|---|---|---|
+| Artist | 275 | Recording artists |
+| Album | 347 | Albums, each belonging to one artist |
+| Track | 3,503 | Individual tracks, the largest table |
+| Genre | 25 | Track genres |
+| MediaType | 5 | Encoding formats |
+| Playlist | 18 | Named playlists |
+| PlaylistTrack | 8,715 | Many-to-many bridge between playlists and tracks |
+| Customer | 59 | Customers, each assigned a support rep |
+| Employee | 8 | Staff, with a self-referencing `ReportsTo` hierarchy |
+| Invoice | 412 | Customer invoices |
+| InvoiceLine | 2,240 | Line items on each invoice |
+
+See [diagrams.md](diagrams.md) for the ER diagram. The relationships give us the variety the
+project needs: simple one-to-many chains (Artist → Album → Track), a many-to-many bridge
+(PlaylistTrack), a self-referencing hierarchy (Employee.ReportsTo), and nullable foreign keys
+(Track.AlbumId, Track.GenreId, Customer.SupportRepId) that make join choice matter. The
+Customer → Invoice → InvoiceLine → Track path is four tables deep, which is what makes the
+denormalization and indexing comparisons in Deliverable 2 meaningful.
+
+The schema as distributed is already in 3NF, so no normalization work was required to reach it.
+That is why Deliverable 1's normalization work runs in the other direction: we deliberately break
+3NF to build the denormalized variant described below. Chinook also ships 11 foreign-key indexes
+of its own (`IFK_*`), which we had to account for when designing the performance test.
 
 ## Question sources
 <!-- Which Spider databases (chinook_1 / store_1), how many from each, how you selected them,
