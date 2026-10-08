@@ -108,9 +108,9 @@ flowchart LR
     end
 
     subgraph D["Denormalized (read-optimized)"]
-        TF["TrackFlat&lt;br/&gt;3,503 rows&lt;br/&gt;breaks 3NF"]
-        SF["SalesFlat&lt;br/&gt;2,240 rows&lt;br/&gt;breaks 3NF"]
-        CF["CustomerFlat&lt;br/&gt;59 rows&lt;br/&gt;breaks 3NF"]
+        TF["TrackFlat<br/>3,503 rows<br/>breaks 3NF"]
+        SF["SalesFlat<br/>2,240 rows<br/>breaks 3NF"]
+        CF["CustomerFlat<br/>59 rows<br/>breaks 3NF"]
     end
 
     TR -.-> TF
@@ -137,30 +137,30 @@ This is the architecture of the experiment: one prompt, two models, three graded
 
 ```mermaid
 flowchart TD
-    SP["Spider benchmark&lt;br/&gt;(chinook_1)"] --> QS["questions.json&lt;br/&gt;20 questions + gold SQL"]
-    DDL["normalized_schema.sql&lt;br/&gt;CREATE TABLE statements"] --> PR
+    SP["Spider benchmark<br/>(chinook_1)"] --> QS["questions.json<br/>20 questions + gold SQL"]
+    DDL["normalized_schema.sql<br/>CREATE TABLE statements"] --> PR
 
-    QS --> PR["Prompt = schema + question&lt;br/&gt;'return only SQL'"]
-    PR --> GEM["Gemini&lt;br/&gt;gemini-2.5-flash-lite"]
-    PR --> LLA["Llama via Groq&lt;br/&gt;llama-3.1-8b-instant"]
+    QS --> PR["Prompt = schema + question<br/>'return only SQL'"]
+    PR --> GEM["Gemini<br/>gemini-2.5-flash-lite"]
+    PR --> LLA["Llama via Groq<br/>llama-3.1-8b-instant"]
 
-    GEM --> GEN["generated_sql.json&lt;br/&gt;1 run per question per model"]
+    GEM --> GEN["generated_sql.json<br/>1 run per question per model"]
     LLA --> GEN
 
-    QS --> GR["gold_results.json&lt;br/&gt;verified result sets"]
-    DB[("chinook.db&lt;br/&gt;normalized")] --> GR
+    QS --> GR["gold_results.json<br/>verified result sets"]
+    DB[("chinook.db<br/>normalized")] --> GR
 
     GEN --> EXEC["Execute each generated query"]
     DB --> EXEC
-    EXEC --> C1["1. Correctness&lt;br/&gt;compare RESULT SETS, not SQL text"]
+    EXEC --> C1["1. Correctness<br/>compare RESULT SETS, not SQL text"]
     GR --> C1
 
-    GEN --> C2["2. Security audit&lt;br/&gt;auto pre-screen + manual review"]
-    CL["security_checklist.md&lt;br/&gt;stacked ; / OR 1=1 / -- / UNION"] --> C2
+    GEN --> C2["2. Security audit<br/>auto pre-screen + manual review"]
+    CL["security_checklist.md<br/>stacked ; / OR 1=1 / -- / UNION"] --> C2
 
-    BQ["benchmark_queries.json"] --> C3["3. Performance&lt;br/&gt;4 conditions, timeit"]
+    BQ["benchmark_queries.json"] --> C3["3. Performance<br/>4 conditions, timeit"]
     DB --> C3
-    DB2[("chinook_denorm.db&lt;br/&gt;+ flat tables")] --> C3
+    DB2[("chinook_denorm.db<br/>+ flat tables")] --> C3
 
     C1 --> RPT["Report + presentation"]
     C2 --> RPT
@@ -171,15 +171,15 @@ flowchart TD
 
 ```mermaid
 flowchart LR
-    Q["Benchmark query&lt;br/&gt;(join or WHERE on non-key)"] --> A["Normalized&lt;br/&gt;no index"]
-    Q --> B["Normalized&lt;br/&gt;+ index"]
-    Q --> C["Denormalized&lt;br/&gt;no index"]
-    Q --> D["Denormalized&lt;br/&gt;+ index"]
-    A --> T["timeit: best-of-5,&lt;br/&gt;20 executions each"]
+    Q["Benchmark query<br/>(join or WHERE on non-key)"] --> A["Normalized<br/>no index"]
+    Q --> B["Normalized<br/>+ index"]
+    Q --> C["Denormalized<br/>no index"]
+    Q --> D["Denormalized<br/>+ index"]
+    A --> T["timeit: best-of-5,<br/>20 executions each"]
     B --> T
     C --> T
     D --> T
-    T --> P["performance.csv&lt;br/&gt;+ EXPLAIN QUERY PLAN"]
+    T --> P["performance.csv<br/>+ EXPLAIN QUERY PLAN"]
 ```
 
 Note: Chinook ships 11 of its own `IFK_*` foreign-key indexes, so the "no index" conditions must
