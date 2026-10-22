@@ -11,3 +11,9 @@ __pycache__/
 .venv/
 .ipynb_checkpoints/
 .DS_Store
+
+# LaTeX build artifacts (the PDF itself is committed)
+docs/latex/*.aux
+docs/latex/*.log
+docs/latex/*.out
+docs/latex/*.toc
