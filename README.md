@@ -49,3 +49,16 @@ Browse them at https://huggingface.co/datasets/xlangai/spider. Filter `db_id` to
 - **Never commit API keys.** `.env` is git-ignored.
 - **Grade by result set, not by SQL text.**
 - **Only use public data** (Chinook and Spider).
+
+## Deliverable 1 PDF
+
+The submission document is [docs/COSC431_Deliverable1_AIQueryCheck.pdf](docs/COSC431_Deliverable1_AIQueryCheck.pdf), built from LaTeX:
+
+```bash
+python scripts/make_latex_appendices.py   # regenerates DDL + question appendices from the data files
+cd docs/latex && tectonic deliverable1.tex
+```
+
+The appendices are generated, so the PDF can never drift from `data/questions.json`,
+`data/gold_results.json` or `sql/normalized_schema.sql`. The Markdown docs stay as the
+working copies the team edits.

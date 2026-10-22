@@ -1,18 +1,54 @@
 [
   {
     "id": "B01",
-    "description": "EXAMPLE — total sales per customer country (join + GROUP BY + WHERE on non-key column)",
-    "normalized_sql": "SELECT c.Country, SUM(il.UnitPrice * il.Quantity) FROM InvoiceLine il JOIN Invoice i ON i.InvoiceId = il.InvoiceId JOIN Customer c ON c.CustomerId = i.CustomerId WHERE i.BillingCity = 'Paris' GROUP BY c.Country",
-    "normalized_indexes": ["CREATE INDEX idx_invoice_billingcity ON Invoice(BillingCity)"],
-    "denormalized_sql": "SELECT CustomerCountry, SUM(UnitPrice * Quantity) FROM SalesFlat WHERE BillingCity = 'Paris' GROUP BY CustomerCountry",
-    "denormalized_indexes": ["CREATE INDEX idx_salesflat_billingcity ON SalesFlat(BillingCity)"]
+    "description": "Q07 \u2014 addresses of German customers who have invoices. 2-table join, WHERE on a non-key column (Customer.Country). NOTE: Chinook ships its own FK indexes, so the IFK_* statements here recreate Chinook's originals by name \u2014 the notebook drops them first to get a genuinely unindexed baseline.",
+    "normalized_sql": "SELECT DISTINCT c.Address FROM Customer c JOIN Invoice i ON i.CustomerId = c.CustomerId WHERE c.Country = 'Germany'",
+    "normalized_indexes": [
+      "CREATE INDEX idx_customer_country ON Customer(Country)",
+      "CREATE INDEX IFK_InvoiceCustomerId ON Invoice(CustomerId)"
+    ],
+    "denormalized_sql": "SELECT DISTINCT CustomerAddress FROM SalesFlat WHERE CustomerCountry = 'Germany'",
+    "denormalized_indexes": [
+      "CREATE INDEX idx_salesflat_customercountry ON SalesFlat(CustomerCountry)"
+    ]
   },
   {
     "id": "B02",
-    "description": "EXAMPLE — tracks in a given genre with artist name (3-way join vs flat lookup)",
-    "normalized_sql": "SELECT t.Name, ar.Name FROM Track t JOIN Album al ON al.AlbumId = t.AlbumId JOIN Artist ar ON ar.ArtistId = al.ArtistId JOIN Genre g ON g.GenreId = t.GenreId WHERE g.Name = 'Jazz'",
-    "normalized_indexes": ["CREATE INDEX idx_genre_name ON Genre(Name)", "CREATE INDEX idx_track_genreid ON Track(GenreId)"],
-    "denormalized_sql": "SELECT TrackName, ArtistName FROM TrackFlat WHERE GenreName = 'Jazz'",
-    "denormalized_indexes": ["CREATE INDEX idx_trackflat_genrename ON TrackFlat(GenreName)"]
+    "description": "Q20 \u2014 average unit price of Jazz tracks. 2-table join, aggregation, WHERE on a non-key column (Genre.Name). NOTE: Chinook ships its own FK indexes, so the IFK_* statements here recreate Chinook's originals by name \u2014 the notebook drops them first to get a genuinely unindexed baseline.",
+    "normalized_sql": "SELECT AVG(t.UnitPrice) FROM Genre g JOIN Track t ON t.GenreId = g.GenreId WHERE g.Name = 'Jazz'",
+    "normalized_indexes": [
+      "CREATE INDEX idx_genre_name ON Genre(Name)",
+      "CREATE INDEX IFK_TrackGenreId ON Track(GenreId)"
+    ],
+    "denormalized_sql": "SELECT AVG(UnitPrice) FROM TrackFlat WHERE GenreName = 'Jazz'",
+    "denormalized_indexes": [
+      "CREATE INDEX idx_trackflat_genrename ON TrackFlat(GenreName)"
+    ]
+  },
+  {
+    "id": "B03",
+    "description": "Q14 \u2014 artist with the most albums. 2-table join plus GROUP BY and ORDER BY on an aggregate. NOTE: Chinook ships its own FK indexes, so the IFK_* statements here recreate Chinook's originals by name \u2014 the notebook drops them first to get a genuinely unindexed baseline.",
+    "normalized_sql": "SELECT ar.Name FROM Album al JOIN Artist ar ON ar.ArtistId = al.ArtistId GROUP BY ar.Name ORDER BY COUNT(*) DESC LIMIT 1",
+    "normalized_indexes": [
+      "CREATE INDEX IFK_AlbumArtistId ON Album(ArtistId)",
+      "CREATE INDEX idx_artist_name ON Artist(Name)"
+    ],
+    "denormalized_sql": "SELECT ArtistName FROM (SELECT DISTINCT AlbumId, ArtistName FROM TrackFlat) GROUP BY ArtistName ORDER BY COUNT(*) DESC LIMIT 1",
+    "denormalized_indexes": [
+      "CREATE INDEX idx_trackflat_artist_album ON TrackFlat(ArtistName, AlbumId)"
+    ]
+  },
+  {
+    "id": "B04",
+    "description": "Q10 \u2014 count tracks of a given media type. Join against the largest table (3,503 tracks), WHERE on a non-key name column. NOTE: Chinook ships its own FK indexes, so the IFK_* statements here recreate Chinook's originals by name \u2014 the notebook drops them first to get a genuinely unindexed baseline.",
+    "normalized_sql": "SELECT COUNT(*) FROM MediaType m JOIN Track t ON t.MediaTypeId = m.MediaTypeId WHERE m.Name = 'AAC audio file'",
+    "normalized_indexes": [
+      "CREATE INDEX idx_mediatype_name ON MediaType(Name)",
+      "CREATE INDEX IFK_TrackMediaTypeId ON Track(MediaTypeId)"
+    ],
+    "denormalized_sql": "SELECT COUNT(*) FROM TrackFlat WHERE MediaTypeName = 'AAC audio file'",
+    "denormalized_indexes": [
+      "CREATE INDEX idx_trackflat_mediatypename ON TrackFlat(MediaTypeName)"
+    ]
   }
 ]
