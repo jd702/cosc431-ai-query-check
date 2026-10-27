@@ -409,7 +409,70 @@ queries can run against either.
 \end{tabular}
 \end{center}
 
+\subsection{What collapses into what}
+
+\begin{center}
+\begin{tikzpicture}[
+  base/.style={draw, rounded corners=2pt, font=\scriptsize\sffamily, fill=blue!4,
+               minimum width=17mm, minimum height=5.5mm},
+  flat/.style={draw, rounded corners=2pt, font=\scriptsize\sffamily, fill=orange!12,
+               minimum width=26mm, minimum height=9mm, align=center},
+  absorb/.style={-{Stealth[length=1.6mm]}, dashed, gray!65!black, thin}
+]
+\node[font=\small\bfseries] at (-2.1,4.3) {Normalized (3NF)};
+\node[font=\small\bfseries] at (4.6,4.3) {Denormalized};
+
+\node[base] (artist)  at (-3.3,3.5) {Artist};
+\node[base] (album)   at (-3.3,2.8) {Album};
+\node[base] (genre)   at (-3.3,2.1) {Genre};
+\node[base] (media)   at (-3.3,1.4) {MediaType};
+\node[base] (track)   at (-3.3,0.7) {Track};
+\node[base] (invline) at (-3.3,0.0) {InvoiceLine};
+\node[base] (invoice) at (-3.3,-0.7) {Invoice};
+\node[base] (cust)    at (-3.3,-1.4) {Customer};
+\node[base] (emp)     at (-3.3,-2.1) {Employee};
+
+\node[flat] (tf) at (4.6,2.4)  {\textbf{TrackFlat}\\3,503 rows, 4 joins removed};
+\node[flat] (sf) at (4.6,0.2)  {\textbf{SalesFlat}\\2,240 rows, 3 joins removed};
+\node[flat] (cf) at (4.6,-1.8) {\textbf{CustomerFlat}\\59 rows, 1 join removed};
+
+\foreach \n in {artist,album,genre,media,track} \draw[absorb] (\n.east) -- (tf.west);
+\foreach \n in {invline,invoice,cust,track}     \draw[absorb] (\n.east) -- (sf.west);
+\foreach \n in {cust,emp}                       \draw[absorb] (\n.east) -- (cf.west);
+\end{tikzpicture}
+\end{center}
+
+\noindent
+Dashed arrows show absorption: each flat table stores a pre-joined copy of the tables feeding
+into it. \texttt{Track} and \texttt{Customer} each feed two flat tables, so their attributes are
+duplicated twice over.
+
 \subsection{Dependencies and normal forms violated}
+
+\begin{center}
+\begin{tikzpicture}[
+  att/.style={font=\scriptsize\ttfamily, inner sep=1.5pt},
+  key/.style={att, draw, fill=yellow!18, rounded corners=1pt},
+  fd/.style={-{Stealth[length=1.6mm]}, blue!45!black},
+  trans/.style={-{Stealth[length=1.6mm]}, red!60!black, thick}
+]
+\node[font=\small\bfseries, anchor=west] at (-0.4,1.5) {SalesFlat --- transitive dependencies};
+\node[key] (k)  at (0.4,0.6)  {InvoiceLineId};
+\node[att] (i)  at (3.3,0.6)  {InvoiceId};
+\node[att] (c)  at (6.0,0.6)  {CustomerId};
+\node[att] (ia) at (3.3,-0.5) {\parbox{2.6cm}{\centering InvoiceDate\\BillingCountry\\InvoiceTotal}};
+\node[att] (ca) at (6.4,-0.5) {\parbox{2.8cm}{\centering CustomerFirstName\\CustomerAddress\\CustomerCountry}};
+
+\draw[trans] (k)  -- node[above,font=\tiny\sffamily]{determines} (i);
+\draw[trans] (i)  -- node[above,font=\tiny\sffamily]{determines} (c);
+\draw[fd]    (i)  -- (ia);
+\draw[fd]    (c)  -- (ca);
+\node[font=\tiny\sffamily, text=red!60!black, anchor=west] at (-0.4,-1.5)
+  {Key $\rightarrow$ non-key $\rightarrow$ non-key: the red chain is the transitive dependency
+   that violates 3NF.};
+\end{tikzpicture}
+\end{center}
+
 
 \paragraph{TrackFlat} (key \texttt{TrackId}). Since
 $TrackId \rightarrow AlbumId$ and $AlbumId \rightarrow AlbumTitle,\,ArtistId$, the dependency
@@ -471,6 +534,136 @@ representatives, each representative's name is stored roughly twenty times.
     denormalization trade-off: duplicated storage in exchange for a join-free read path, which is
     the standard argument for a read-optimized reporting table.
 \end{itemize}
+
+\section{Evaluation pipeline design}\label{sec:pipeline}
+
+The benchmark built above is the input to Deliverable 2. This section documents the architecture
+we will execute against it, so that the design can be reviewed before the models are run.
+
+\subsection{Component structure}
+
+Each box is a module in \texttt{src/} with its public operations, drawn in UML class notation.
+Dashed arrows are dependencies ($\langle\langle$use$\rangle\rangle$).
+
+\begin{center}
+\begin{tikzpicture}[
+  uml/.style={draw, font=\scriptsize\ttfamily, align=left, fill=blue!3, inner sep=0pt,
+              text width=36mm},
+  note/.style={draw, font=\scriptsize\sffamily, fill=yellow!14, align=center, rounded corners=2pt,
+               text width=40mm, inner sep=3pt},
+  use/.style={-{Stealth[length=1.6mm]}, dashed, gray!60!black}
+]
+\node[note] (nb) at (0,3.6) {\textbf{Notebook 02}\\\scriptsize orchestrates the evaluation};
+
+\node[uml] (llm) at (-4.3,1.4) {%
+  \begin{tabular}{@{}p{34mm}@{}}
+  \multicolumn{1}{@{}c@{}}{\textbf{llm}}\\\hline
+  + build\_prompt()\\
+  + generate\_sql()\\
+  + clean\_sql()\\\hline
+  \end{tabular}};
+
+\node[uml] (grade) at (0,1.4) {%
+  \begin{tabular}{@{}p{34mm}@{}}
+  \multicolumn{1}{@{}c@{}}{\textbf{grading}}\\\hline
+  + run\_query()\\
+  + results\_match()\\\hline
+  \end{tabular}};
+
+\node[uml] (sec) at (4.3,1.4) {%
+  \begin{tabular}{@{}p{34mm}@{}}
+  \multicolumn{1}{@{}c@{}}{\textbf{security}}\\\hline
+  + prescreen()\\
+  + CHECKS\\\hline
+  \end{tabular}};
+
+\node[uml] (bench) at (-2.1,-1.0) {%
+  \begin{tabular}{@{}p{34mm}@{}}
+  \multicolumn{1}{@{}c@{}}{\textbf{benchmark}}\\\hline
+  + time\_query()\\
+  + apply\_indexes()\\
+  + drop\_indexes()\\
+  + query\_plan()\\\hline
+  \end{tabular}};
+
+\node[uml] (paths) at (2.3,-1.0) {%
+  \begin{tabular}{@{}p{34mm}@{}}
+  \multicolumn{1}{@{}c@{}}{\textbf{paths}}\\\hline
+  + NORM\_DB, DENORM\_DB\\
+  + QUESTIONS, RESULTS\\\hline
+  \end{tabular}};
+
+\draw[use] (nb) -- (llm);
+\draw[use] (nb) -- (grade);
+\draw[use] (nb) -- (sec);
+\draw[use] (nb.south west) to[bend right=12] (bench.north);
+\draw[use] (llm.south) -- (paths.north west);
+\draw[use] (grade.south) -- (paths.north);
+\draw[use] (bench.east) -- (paths.west);
+\end{tikzpicture}
+\end{center}
+
+\subsection{Sequence of one evaluated question}
+
+\begin{center}
+\begin{tikzpicture}[
+  actor/.style={draw, rounded corners=2pt, font=\scriptsize\sffamily, fill=blue!6,
+                minimum width=20mm, minimum height=5.5mm},
+  life/.style={densely dashed, gray!65},
+  msg/.style={-{Stealth[length=1.6mm]}, font=\tiny\sffamily},
+  ret/.style={-{Stealth[length=1.6mm]}, densely dashed, font=\tiny\sffamily, gray!50!black}
+]
+\def\ytop{0}
+\def\ybot{-7.4}
+\node[actor] (n)  at (0,\ytop)   {Notebook};
+\node[actor] (m)  at (3.6,\ytop) {Model API};
+\node[actor] (d)  at (7.0,\ytop) {SQLite DB};
+\node[actor] (g)  at (10.2,\ytop){Grader};
+\foreach \n in {n,m,d,g} \draw[life] (\n.south) -- ++(0,\ybot);
+
+\draw[msg] (0,-0.9)   -- node[above]{build\_prompt(schema, question)} (3.6,-0.9);
+\draw[ret] (3.6,-1.7) -- node[above]{generated SQL (text)} (0,-1.7);
+\draw[msg] (0,-2.5)   -- node[above]{clean\_sql() then execute (read-only)} (7.0,-2.5);
+\draw[ret] (7.0,-3.3) -- node[above]{result rows, or SQL error} (0,-3.3);
+\draw[msg] (0,-4.1)   -- node[above]{results\_match(gold, predicted)} (10.2,-4.1);
+\draw[ret] (10.2,-4.9)-- node[above]{correct / incorrect} (0,-4.9);
+\draw[msg] (0,-5.7)   -- node[above]{prescreen(sql)} (10.2,-5.7);
+\draw[ret] (10.2,-6.5)-- node[above]{auto-flags $\rightarrow$ manual review} (0,-6.5);
+\node[font=\tiny\sffamily, anchor=west, text=gray!50!black] at (0.1,-7.2)
+  {Repeated once per question per model; responses are cached so the APIs are called exactly once.};
+\end{tikzpicture}
+\end{center}
+
+\noindent
+Correctness is decided on the \emph{result rows}, never on the SQL text, so a differently written
+query that returns the same rows still counts as correct. Generated queries are executed through a
+read-only connection, which is why a model's stray \texttt{DROP} or stacked statement is recorded
+as a security flag rather than executed.
+
+\subsection{Performance experiment}
+
+\begin{center}
+\begin{tikzpicture}[
+  st/.style={draw, rounded corners=2pt, font=\scriptsize\sffamily, fill=blue!5, align=center,
+             minimum height=7mm, minimum width=27mm},
+  cond/.style={draw, rounded corners=2pt, font=\scriptsize\sffamily, fill=green!7, align=center,
+               minimum height=6.5mm, minimum width=32mm},
+  fl/.style={-{Stealth[length=1.8mm]}, gray!60!black}
+]
+\node[st] (q) at (0,0) {Benchmark query\\(join or non-key \textsc{where})};
+\node[cond] (a) at (4.6,2.1)  {Normalized, no index};
+\node[cond] (b) at (4.6,0.7)  {Normalized, indexed};
+\node[cond] (c) at (4.6,-0.7) {Denormalized, no index};
+\node[cond] (d) at (4.6,-2.1) {Denormalized, indexed};
+\node[st] (t) at (9.3,0) {\texttt{timeit}: best of 5,\\20 executions each};
+\node[st] (p) at (9.3,-2.4) {\texttt{performance.csv}\\+ \textsc{explain query plan}};
+\foreach \n in {a,b,c,d} { \draw[fl] (q) -- (\n); \draw[fl] (\n) -- (t); }
+\draw[fl] (t) -- (p);
+\node[font=\tiny\sffamily, text=red!60!black, align=center] at (4.6,-3.2)
+  {Chinook's own \texttt{IFK\_*} indexes must be dropped first, or the ``no index'' conditions are
+   already indexed.};
+\end{tikzpicture}
+\end{center}
 
 \section{Contribution statement}\label{sec:contrib}
 
