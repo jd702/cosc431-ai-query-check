@@ -472,6 +472,26 @@ representatives, each representative's name is stored roughly twenty times.
     the standard argument for a read-optimized reporting table.
 \end{itemize}
 
+\section{Contribution statement}\label{sec:contrib}
+
+This deliverable is submitted individually by each team member. The division of work below
+reflects the commit history of the project repository as of \today.
+
+\begin{description}[leftmargin=*,style=nextline,topsep=2pt,itemsep=3pt]
+  \item[Jelani Denmark] Repository setup and the evaluation pipeline (prompting, result-set
+    grading, security pre-screen, and timing modules); verification of all twenty gold queries
+    against the database; the denormalized schema and its analysis (\S\ref{sec:denorm}); the
+    Deliverable 2 benchmark queries, including the discovery that Chinook's built-in indexes
+    invalidate a naive unindexed baseline; the ER and pipeline diagrams; and this document.
+  \item[Joshua Sanders] Selection and adaptation of the twenty Spider questions, the gold SQL
+    for the question set, and the question-sources and adaptations write-up
+    (\S\ref{sec:questions}). Corrected three questions whose wording disagreed with their gold
+    SQL following internal review.
+  \item[Isaiah Washington] The relational algebra and tuple relational calculus queries
+    (\S\ref{sec:algebra}), subsequently revised jointly to match the final question set.
+  \item[Maxwell Amakor] Did not contribute.
+\end{description}
+
 \section{Known limitations}\label{sec:limits}
 
 \begin{itemize}[leftmargin=*,topsep=2pt,itemsep=3pt]
