@@ -39,7 +39,8 @@ LEFT JOIN MediaType m  ON m.MediaTypeId  = t.MediaTypeId;
 
 -- 2. SalesFlat: InvoiceLine + Invoice + Customer + Track
 --    Serves the sales/customer questions (Q02, Q07) and the D2 timing queries.
---    Key: InvoiceLineId. Breaks 2NF/3NF: InvoiceLineId -> InvoiceId -> InvoiceDate,
+-- Key: InvoiceLineId. Breaks 3NF through transitive dependencies:
+-- InvoiceLineId -> InvoiceId -> CustomerId -> Customer attributes.
 --    BillingCountry, CustomerId; CustomerId -> customer name and country.
 DROP TABLE IF EXISTS SalesFlat;
 CREATE TABLE SalesFlat AS
