@@ -55,100 +55,149 @@ Q|20 |train_spider.json,index 888|Adapted the question and SQL to the database.|
 
 ## Denormalized Schema
 
+The normalized Chinook schema is already in 3NF, so the variant in `sql/denormalized_schema.sql` deliberately reintroduces redundancy by collapsing the three join paths our 20 benchmark questions use most often. Both versions live in `data/chinook_denorm.db`, so the same gold queries can run against either one.
+
+### Overview
+
+| Flat Table | Merges | Serves | Rows |
+| --- | --- | --- | --- |
+| `TrackFlat` | Track + Album + Artist + Genre + MediaType | Q09, Q10, Q13, Q14, Q15, Q20 | 3,503 |
+| `SalesFlat` | InvoiceLine + Invoice + Customer + Track | Q02, Q07, timing queries | 2,240 |
+| `CustomerFlat` | Customer + Support Representative Employee | Q11, Q12, Q16 | 59 |
+
+* * *
+
+## Dependencies and Normal Form Violations
+
 ### TrackFlat
 
-**Merged Tables**
+**Primary Key:** `TrackId`
 
--   Track
--   Album
--   Artist
--   Genre
--   MediaType
+#### Dependencies
 
-**Dependencies**
+-   `TrackId → AlbumId`
+-   `AlbumId → AlbumTitle, ArtistId`
+-   `ArtistId → ArtistName`
+-   `GenreId → GenreName`
+-   `MediaTypeId → MediaTypeName`
 
--   AlbumId → AlbumTitle, ArtistId
--   ArtistId → ArtistName
--   GenreId → GenreName
--   MediaTypeId → MediaTypeName
+#### Normal Form Violated
 
-**Normal Form Violated**
+`TrackId → AlbumTitle` exists only through the transitive path:
 
--   Violates **3NF (Third Normal Form)** because album, artist, genre, and media type information are stored redundantly in track records through transitive dependencies.
+```plaintext
+TrackId → AlbumId → AlbumTitle
+```
 
-**Update Anomaly**
+The same pattern exists for artist, genre, and media type data. Because non-key attributes depend on other non-key attributes, this table **violates 3NF**.
 
--   If an artist's name changes, every track row associated with that artist must be updated.
--   If a genre name changes, the modification must be made in multiple rows.
+It remains in **2NF** because the primary key contains a single attribute, so partial dependencies cannot occur.
 
-**Insert Anomaly**
+#### Redundancy Example
 
--   A new artist, album, genre, or media type cannot be added unless at least one track exists for it.
-
-**Delete Anomaly**
-
--   Deleting the last track associated with an artist or album may cause information about that artist or album to be lost.
+-   "Iron Maiden" is stored 213 times.
+-   "U2" is stored 135 times.
 
 * * *
 
 ### SalesFlat
 
-**Merged Tables**
+**Primary Key:** `InvoiceLineId`
 
--   InvoiceLine
--   Invoice
--   Customer
+#### Dependencies
 
-**Dependencies**
+-   `InvoiceLineId → InvoiceId`
+-   `InvoiceId → InvoiceDate, BillingCity, BillingCountry, InvoiceTotal, CustomerId`
+-   `CustomerId → CustomerFirstName, CustomerLastName, CustomerAddress, CustomerCountry`
 
--   InvoiceLineId → InvoiceId
--   InvoiceId → CustomerId
--   CustomerId → CustomerFirstName, CustomerLastName, Country
+#### Normal Form Violated
 
-**Normal Form Violated**
+This creates chained transitive dependencies:
 
--   Violates **3NF (Third Normal Form)** because customer information depends on CustomerId rather than directly on the primary key of the flattened table.
+```plaintext
+InvoiceLineId → InvoiceId → CustomerId
+InvoiceLineId → InvoiceId → CustomerId → Customer Information
+```
 
-**Update Anomaly**
+Because customer details are dependent on another non-key attribute (`CustomerId`), the table **violates 3NF**.
 
--   If customer information changes, every sales record containing that customer must be updated.
--   Inconsistent updates can result in conflicting customer information.
+#### Redundancy Example
 
-**Insert Anomaly**
-
--   A customer cannot be added without creating an invoice or invoice line.
--   Customer information depends on the existence of a sale.
-
-**Delete Anomaly**
-
--   Deleting a customer's final invoice may remove all information about that customer from the table.
+-   One invoice with 14 line items repeats the same customer address 14 times.
 
 * * *
 
 ### CustomerFlat
 
-**Merged Tables**
+**Primary Key:** `CustomerId`
 
--   Customer
--   Employee (Support Representative)
+#### Dependencies
 
-**Dependencies**
+-   `CustomerId → SupportRepId`
+-   `SupportRepId → RepFirstName, RepLastName, RepTitle`
 
--   CustomerId → SupportRepId
--   SupportRepId → RepFirstName, RepLastName, RepTitle
+#### Normal Form Violated
 
-**Normal Form Violated**
+The dependency chain:
 
--   Violates **3NF (Third Normal Form)** because representative information is transitively dependent on CustomerId through SupportRepId.
+```plaintext
+CustomerId → SupportRepId → Representative Information
+```
 
-**Update Anomaly**
+creates a transitive dependency, so the table **violates 3NF**.
 
--   A support representative's title or name must be updated in every customer record associated with that representative.
+#### Redundancy Example
 
-**Insert Anomaly**
+-   With 59 customers and 3 support representatives, each representative's information is stored roughly 20 times.
 
--   A support representative cannot be stored unless at least one customer is assigned to them.
+* * *
 
-**Delete Anomaly**
+## Anomalies Introduced by Denormalization
 
--   Deleting the last customer assigned to a representative may remove all information about that representative from the table.
+### Update Anomaly
+
+-   Correcting an artist's name requires updating every song associated with that artist.
+-   For example, updating "Iron Maiden" requires modifying 213 rows instead of a single row in the `Artist` table.
+-   Partial updates can result in conflicting versions of the same artist name.
+
+### Insert Anomaly
+
+-   `TrackFlat` cannot store an artist or genre unless at least one track exists.
+-   `SalesFlat` cannot store a customer who has never made a purchase.
+-   Query Q17 ("artists who have not released an album") still depends on the normalized `Artist` table because those artists cannot exist in `TrackFlat`.
+
+### Delete Anomaly
+
+-   Deleting the last track for an artist removes all information about that artist.
+-   Deleting the final invoice line of an invoice removes the invoice's date and total.
+
+### Inconsistency Risk
+
+-   `CustomerCountry` and `BillingCountry` both exist in `SalesFlat`.
+-   The values can become inconsistent because no constraint guarantees they remain synchronized.
+
+* * *
+
+## Design Decisions and Trade-Offs
+
+### Handling Nullable Foreign Keys
+
+`Track.AlbumId`, `Track.GenreId`, and `Customer.SupportRepId` are flattened using `LEFT JOIN`.
+
+Although the current dataset contains no NULL values in these columns, the schema allows them. Using `INNER JOIN` would silently discard rows and cause the denormalized schema to return different results than the normalized schema.
+
+### Verified Equivalence
+
+Six representative tests (Q07, Q10, Q11, Q14, Q20, and row-count checks) return identical results on both schemas. Any timing differences measured in Deliverable 2 therefore come from schema design rather than differing query results.
+
+### Storage Cost
+
+-   Normalized database size: **984 KB**
+-   Denormalized database size: **1.7 MB**
+-   Growth: approximately **73% larger**
+
+### Maintaining Both Schemas
+
+The normalized and denormalized tables are stored together.
+
+This is a common denormalization trade-off: additional storage is accepted in exchange for faster, join-free reads that benefit reporting and analytical workloads.
