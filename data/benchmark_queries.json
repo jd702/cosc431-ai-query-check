@@ -50,5 +50,41 @@
     "denormalized_indexes": [
       "CREATE INDEX idx_trackflat_mediatypename ON TrackFlat(MediaTypeName)"
     ]
+  },
+    {
+    "id": "B05",
+    "description": "Q11 — support representative for customer Leonie. Join plus WHERE on a non-key customer first name.",
+    "normalized_sql": "SELECT e.FirstName, e.LastName FROM Customer c JOIN Employee e ON c.SupportRepId = e.EmployeeId WHERE c.FirstName = 'Leonie'",
+    "normalized_indexes": [
+      "CREATE INDEX idx_customer_firstname ON Customer(FirstName)"
+    ],
+    "denormalized_sql": "SELECT RepFirstName, RepLastName FROM CustomerFlat WHERE CustomerFirstName = 'Leonie'",
+    "denormalized_indexes": [
+      "CREATE INDEX idx_customerflat_firstname ON CustomerFlat(CustomerFirstName)"
+    ]
+  },
+  {
+    "id": "B06",
+    "description": "Q15 — albums containing tracks priced above 1. Join, WHERE predicate, and GROUP BY.",
+    "normalized_sql": "SELECT a.Title, t.AlbumId FROM Album a JOIN Track t ON a.AlbumId = t.AlbumId WHERE t.UnitPrice > 1 GROUP BY t.AlbumId, a.Title",
+    "normalized_indexes": [
+      "CREATE INDEX idx_track_unitprice ON Track(UnitPrice)"
+    ],
+    "denormalized_sql": "SELECT AlbumTitle, AlbumId FROM TrackFlat WHERE UnitPrice > 1 GROUP BY AlbumId, AlbumTitle",
+    "denormalized_indexes": [
+      "CREATE INDEX idx_trackflat_unitprice ON TrackFlat(UnitPrice)"
+    ]
+  },
+  {
+    "id": "B07",
+    "description": "Q19 — count customers whose email contains gmail.com. WHERE on a non-key text column.",
+    "normalized_sql": "SELECT COUNT(*) FROM Customer WHERE Email LIKE '%gmail.com%'",
+    "normalized_indexes": [
+      "CREATE INDEX idx_customer_email ON Customer(Email)"
+    ],
+    "denormalized_sql": "SELECT COUNT(*) FROM CustomerFlat WHERE Email LIKE '%gmail.com%'",
+    "denormalized_indexes": [
+      "CREATE INDEX idx_customerflat_email ON CustomerFlat(Email)"
+    ]
   }
 ]
