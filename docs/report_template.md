@@ -1,5 +1,5 @@
 # AI Query Check: Evaluating LLM-Generated SQL
-*Team: ...*
+*Team: Report done by Maxwell Amakor*
 
 ## 1. Methodology (B)
 - Database: Chinook (SQLite), normalized and denormalized versions
@@ -77,7 +77,7 @@ B05 and B07 showed very little difference between the normalized and denormalize
 
 ### Cost of Denormalization
 
-The primary cost of denormalization is increased storage and redundancy. Data such as artist names, album titles, customer information, and support representative information are repeated across many rows. This can increase update, insert, and delete anomalies and increase storage requirements. While denormalization can improve performance for read\-heavy workloads, it makes maintaining consistent data more difficult.
+The primary cost of denormalization is increased storage and redundancy. Data such as artist names, album titles, customer information, and support representative information are repeated across many rows. This can increase update, insert, and delete anomalies and increase storage requirements. While denormalization can improve performance for read\-heavy workloads, it makes maintaining consistent data more dieficult.
 
 
 
