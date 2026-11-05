@@ -50,5 +50,18 @@
     "denormalized_indexes": [
       "CREATE INDEX idx_trackflat_mediatypename ON TrackFlat(MediaTypeName)"
     ]
-  }
+  },
+  {
+  "id": "B05",
+  ...
+},
+{
+  "id": "B06",
+  ...
+},
+{
+  "id": "B07",
+  ...
+}
+]
 ]
