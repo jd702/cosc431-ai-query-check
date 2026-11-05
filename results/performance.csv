@@ -1,0 +1,42 @@
+id,schema,index,ms,plan
+B01,normalized,no index,0.4483599999730359,"SCAN i
+SEARCH c USING INTEGER PRIMARY KEY (rowid=?)
+USE TEMP B-TREE FOR DISTINCT"
+B01,normalized,indexed,0.12687499993262463,"SEARCH c USING INDEX idx_customer_country (Country=?)
+SEARCH i USING COVERING INDEX IFK_InvoiceCustomerId (CustomerId=?)
+USE TEMP B-TREE FOR DISTINCT"
+B01,denormalized,no index,0.6259300000238,"SCAN SalesFlat
+USE TEMP B-TREE FOR DISTINCT"
+B01,denormalized,indexed,0.18120000004273606,"SEARCH SalesFlat USING INDEX idx_salesflat_customercountry (CustomerCountry=?)
+USE TEMP B-TREE FOR DISTINCT"
+B02,normalized,no index,0.4181350000180828,"SCAN t
+BLOOM FILTER ON g (GenreId=?)
+SEARCH g USING INTEGER PRIMARY KEY (rowid=?)"
+B02,normalized,indexed,0.13276999998197425,"SEARCH g USING COVERING INDEX idx_genre_name (Name=?)
+SEARCH t USING INDEX IFK_TrackGenreId (GenreId=?)"
+B02,denormalized,no index,0.6232449999515666,SCAN TrackFlat
+B02,denormalized,indexed,0.4290699999728531,SEARCH TrackFlat USING INDEX idx_trackflat_genrename (GenreName=?)
+B03,normalized,no index,0.6355450000228302,"SCAN al
+SEARCH ar USING INTEGER PRIMARY KEY (rowid=?)
+USE TEMP B-TREE FOR GROUP BY
+USE TEMP B-TREE FOR ORDER BY"
+B03,normalized,indexed,0.6909100000484614,"SCAN ar USING COVERING INDEX idx_artist_name
+SEARCH al USING COVERING INDEX IFK_AlbumArtistId (ArtistId=?)
+USE TEMP B-TREE FOR ORDER BY"
+B03,denormalized,no index,1.75970000000234,"CO-ROUTINE (subquery-1)
+SCAN TrackFlat
+USE TEMP B-TREE FOR DISTINCT
+SCAN (subquery-1)
+USE TEMP B-TREE FOR GROUP BY
+USE TEMP B-TREE FOR ORDER BY"
+B03,denormalized,indexed,0.4896550000012212,"CO-ROUTINE (subquery-1)
+SCAN TrackFlat USING COVERING INDEX idx_trackflat_artist_album
+SCAN (subquery-1)
+USE TEMP B-TREE FOR GROUP BY
+USE TEMP B-TREE FOR ORDER BY"
+B04,normalized,no index,0.5952550000074552,"SCAN m
+SCAN t"
+B04,normalized,indexed,0.18851499999072985,"SEARCH m USING COVERING INDEX idx_mediatype_name (Name=?)
+SEARCH t USING COVERING INDEX IFK_TrackMediaTypeId (MediaTypeId=?)"
+B04,denormalized,no index,0.4531600000518665,SCAN TrackFlat
+B04,denormalized,indexed,0.19690500002980116,SEARCH TrackFlat USING COVERING INDEX idx_trackflat_mediatypename (MediaTypeName=?)
