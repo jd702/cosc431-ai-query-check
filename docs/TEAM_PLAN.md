@@ -4,7 +4,7 @@ Fill in names on day one. Each role has one **owner** and one **backup**. The ba
 
 | Role | Name | Backup | Owns |
 |---|---|---|---|
-| **A. Schema & Performance lead** | | (C) | Chinook setup, denormalized schema + write-up, D2 Step 6 timing |
+| **A. Schema & Performance lead** | Maxwell Amakor | (C) | Chinook setup, denormalized schema + write-up, D2 Step 6 timing |
 | **B. Question-set lead** | | (D) | Picking 15–20 Spider questions, gold SQL, notebook 01 |
 | **C. Formal Methods & Security lead** | | (A) | Relational algebra/calculus (3–5 queries), D2 Step 5 security audit |
 | **D. Pipeline lead** | Jelani Denmark | (B) | `.env`/API setup, notebook 02 Steps 3–4, correctness analysis |
