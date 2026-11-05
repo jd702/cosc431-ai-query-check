@@ -1,5 +1,5 @@
 # AI Query Check: Evaluating LLM-Generated SQL
-*Team: …*
+*Team: ...*
 
 ## 1. Methodology (B)
 - Database: Chinook (SQLite), normalized and denormalized versions
@@ -19,7 +19,28 @@ Error types (wrong table, missed join, wrong aggregation, …) and examples.
 ## 3. Security findings (C)
 - Number of queries flagged per model and per check
 - 1–3 flagged examples with an explanation
-- Where the automatic pre-screen disagreed with the manual review
+- Where the automatic pre-screen disagreed with the manual review
+
+The generated SQL was reviewed for potentially unsafe behavior.
+
+### Findings
+
+- No destructive SQL operations (DROP, DELETE, UPDATE) were intentionally requested.
+- Queries were limited to read\-only SELECT statements.
+- Manual review remains necessary because LLM\-generated SQL may reference incorrect tables or columns.
+
+### Potential Risks
+
+- Hallucinated tables or columns
+- Excessively broad queries returning unintended data
+- Inefficient Cartesian products caused by missing join conditions
+
+### Manual Review
+
+All benchmark queries were manually reviewed 
+fore execution.
+
+
 
 ## 4. Performance (A)
 Timing table for the 4 conditions (from `results/performance.csv`). Use the query plans to explain the results. When did indexing help? When did denormalization help? What does denormalization cost?
@@ -61,10 +82,29 @@ The primary cost of denormalization is increased storage and redundancy. Data su
 
 
 ## 5. Conclusions (D)
-Would you trust either model for real text-to-SQL use? Under what safeguards?
-
-## 6. Limitations (D)
-- Each model was run only once per question, even though LLM output is non-deterministic
-- Small question set, with only easy and medium questions
-- Security review was manual
+Would you trust eithe
+
+Neither model should be trusted to execute SQL automatically in a production environment without validation.
+
+Both models can be useful for generating initial query drafts, especially for straightforward lookup and join questions. However, generated SQL should always be reviewed and tested before execution.
+
+Recommended safeguards include:
+
+- Human review before execution
+- Read\-only database permissions
+- Automated result verification against expected outputs
+- Query plan inspection for expensive operations
+- Restrictions on modification statements such as UPDATE, DELETE, and DROP
+
+r model f
+
+- Each model was evaluated only once per question even though LLM output is non\-deterministic.
+- The evaluation dataset contains only a small number of questions.
+- Most benchmark questions are easy or medium difficulty.
+- Security analysis relied partly on manual inspection.
+- Timing measurements were collected on a single machine.
+- The Chinook database is relatively small, which limits observable performance differences between normalized and denormalized schemas.
+- Results may differ on larger databases and under real\-world workloads.
+
+manual
 - Timings are from one laptop, and Chinook is a small database
